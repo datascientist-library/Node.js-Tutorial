@@ -1,0 +1,19 @@
+{
+  "_id": "ORD002",
+  "user": {
+    "userId": 102,
+    "name": "Jane Smith",
+    "email": "jane@example.com"
+  },
+  "products": [
+    {
+      "productId": 3,
+      "name": "Gaming Laptop",
+      "price": 50000,
+      "quantity": 1
+    }
+  ],
+  "total": 50000,
+  "status": "Pending",
+  "createdAt": "2026-06-14"
+}

@@ -1,0 +1,8 @@
+{
+  "_id": 201,
+  "userId": 101,
+  "age": 25,
+  "gender": "Male",
+  "phone": "9999999999",
+  "address": "Mumbai"
+}

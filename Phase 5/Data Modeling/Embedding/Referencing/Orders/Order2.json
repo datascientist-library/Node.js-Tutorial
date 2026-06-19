@@ -1,0 +1,9 @@
+{
+  "_id": "ORD002",
+  "userId": 102,
+  "productIds": [3],
+  "quantities": [1],
+  "total": 50000,
+  "status": "Pending",
+  "createdAt": "2026-06-14"
+}

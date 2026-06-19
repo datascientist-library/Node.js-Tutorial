@@ -1,0 +1,25 @@
+{
+  "_id": "ORD003",
+  "user": {
+    "userId": 103,
+    "name": "Amit Sharma",
+    "email": "amit@example.com"
+  },
+  "products": [
+    {
+      "productId": 4,
+      "name": "Monitor",
+      "price": 10000,
+      "quantity": 1
+    },
+    {
+      "productId": 1,
+      "name": "Wireless Mouse",
+      "price": 800,
+      "quantity": 2
+    }
+  ],
+  "total": 11600,
+  "status": "Shipped",
+  "createdAt": "2026-06-15"
+}

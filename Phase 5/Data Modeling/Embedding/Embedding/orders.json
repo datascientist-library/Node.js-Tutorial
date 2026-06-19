@@ -1,0 +1,25 @@
+{
+  "_id": "ORD001",
+  "user": {
+    "userId": 101,
+    "name": "John Doe",
+    "email": "john@example.com"
+  },
+  "products": [
+    {
+      "productId": 1,
+      "name": "Wireless Mouse",
+      "price": 800,
+      "quantity": 1
+    },
+    {
+      "productId": 2,
+      "name": "Keyboard",
+      "price": 2000,
+      "quantity": 1
+    }
+  ],
+  "total": 2800,
+  "status": "Delivered",
+  "createdAt": "2026-06-13"
+}
