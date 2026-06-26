@@ -1,0 +1,5 @@
+{
+  "name": "winston-demo",
+  "scripts": { "start": "node app.js" },
+  "dependencies": { "winston": "^3.11.0" }
+}

@@ -1,0 +1,4 @@
+{
+  "name": "retry-demo",
+  "scripts": { "start": "node app.js" }
+}
