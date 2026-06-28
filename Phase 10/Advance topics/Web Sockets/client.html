@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebSocket Demo</title>
+  <style>
+    body     { font-family: monospace; padding: 20px; background: #1e1e1e; color: #fff; }
+    #log     { background: #2d2d2d; padding: 15px; height: 300px; overflow-y: auto;
+               border-radius: 8px; margin-bottom: 10px; }
+    .server  { color: #4ec9b0; }
+    .client  { color: #dcdcaa; }
+    input    { padding: 8px; width: 300px; background: #3c3c3c; color: #fff; border: 1px solid #555; }
+    button   { padding: 8px 16px; background: #0e639c; color: #fff; border: none; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h2> WebSocket Demo</h2>
+  <div id="log"></div>
+  <input id="input" type="text" placeholder="Type a message..." />
+  <button onclick="sendMessage()">Send</button>
+
+  <script>
+    const log = document.getElementById('log');
+    const ws  = new WebSocket('ws://localhost:3000');
+
+    function addLog(msg, type) {
+      log.innerHTML += `<div class="${type}">${msg}</div>`;
+      log.scrollTop  = log.scrollHeight;
+    }
+
+    ws.onopen = () => addLog('Connected to server', 'server');
+    ws.onclose = () => addLog('Disconnected', 'server');
+    ws.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      addLog(`Server: ${data.message}`, 'server');
+    };
+
+    function sendMessage() {
+      const input = document.getElementById('input');
+      const text  = input.value.trim();
+      if (!text) return;
+      addLog(`You: ${text}`, 'client');
+      ws.send(JSON.stringify({ text }));
+      input.value = '';
+    }
+
+    document.getElementById('input')
+      .addEventListener('keypress', e => {
+        if (e.key === 'Enter') sendMessage();
+      });
+  </script>
+</body>
+</html>
