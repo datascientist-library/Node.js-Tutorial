@@ -20,7 +20,7 @@ const schema = buildSchema(`
   }
 `);
 
-// Fake database 
+// database 
 const users = [
   { id: 1, name: 'Alice', email: 'alice@example.com', age: 28 },
   { id: 2, name: 'Bob', email: 'bob@example.com', age: 34 },
