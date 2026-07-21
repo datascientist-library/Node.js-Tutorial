@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Support Ticket System Demo</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 600px; margin: 20px auto; padding: 0 20px; }
+        .hidden { display: none; }
+        .section { border: 1px solid #ccc; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        #chat-box { height: 300px; border: 1px solid #eee; overflow-y: auto; padding: 10px; margin-bottom: 10px; background: #fafafa; }
+        .message { margin-bottom: 10px; padding: 8px; border-radius: 4px; background: #e9ecef; }
+        .my-message { background: #007bff; color: white; text-align: right; }
+        input, button, select { padding: 8px; margin: 4px 0; }
+        button { cursor: pointer; background: #333; color: white; border: none; border-radius: 4px; }
+        
+        /* New styles for the ticket list */
+        .ticket-item { display: block; width: 100%; text-align: left; background: #f8f9fa; color: #333; border: 1px solid #ddd; margin-bottom: 5px; }
+        .ticket-item:hover { background: #e2e6ea; }
+    </style>
+</head>
+<body>
+
+    <h2>Support Ticket Portal</h2>
+
+    <!-- AUTHENTICATION SECTION -->
+    <div id="auth-section" class="section">
+        <h3>Login / Register</h3>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <select id="role">
+            <option value="user">Customer</option>
+            <option value="agent">Support Agent</option>
+        </select>
+        <br>
+        <button onclick="auth('login')">Login</button>
+        <button onclick="auth('register')">Register</button>
+        <p id="auth-status" style="color: red;"></p>
+    </div>
+
+    <!-- TICKET MANAGEMENT SECTION -->
+    <div id="ticket-section" class="section hidden">
+        <h3>Tickets</h3>
+        <p>Logged in as: <strong id="display-user"></strong></p>
+        
+        <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
+            <h4>Create New Ticket</h4>
+            <input type="text" id="ticket-title" placeholder="Issue description...">
+            <button onclick="createTicket()">Create Ticket</button>
+        </div>
+
+        <div>
+            <h4 id="list-heading">Your Tickets</h4>
+            <!-- Ticket list will populate here -->
+            <div id="ticket-list"></div>
+        </div>
+    </div>
+
+    <!-- LIVE CHAT SECTION -->
+    <div id="chat-section" class="section hidden">
+        <button onclick="backToTickets()" style="background: #6c757d; margin-bottom: 15px;">← Back to Tickets</button>
+        
+        <!-- NEW HEADER FORMAT -->
+        <h3 id="chat-title" style="margin-bottom: 2px;"></h3>
+        <p id="chat-token" style="font-size: 0.8em; color: #666; margin-top: 0;"></p>
+        
+        <div id="chat-box"></div>
+        <input type="text" id="message-input" placeholder="Type a message..." style="width: 70%;">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let token = '';
+        let userId = '';
+        let currentTicketId = '';
+        const socket = io(); 
+
+        // REST API Calls
+        async function auth(action) {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+
+            const res = await fetch(`/${action}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, role })
+            });
+
+            const data = await res.json();
+            
+            if (action === 'register') {
+                document.getElementById('auth-status').innerText = 'Registered! Now click Login.';
+            } else if (res.ok) {
+                token = data.token;
+                userId = data.userId;
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('ticket-section').classList.remove('hidden');
+                document.getElementById('display-user').innerText = `${username} (${data.role})`;
+                
+                if (data.role === 'agent') {
+                    document.getElementById('list-heading').innerText = "All Customer Tickets";
+                }
+                
+                loadTickets(); // Fetch tickets immediately upon login
+            } else {
+                document.getElementById('auth-status').innerText = data.error;
+            }
+        }
+
+        // Load Tickets Function
+        async function loadTickets() {
+            const res = await fetch('/tickets', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const tickets = await res.json();
+            
+            const listDiv = document.getElementById('ticket-list');
+            listDiv.innerHTML = ''; 
+            
+            if (tickets.length === 0) {
+                listDiv.innerHTML = '<p style="color: #666;">No tickets found.</p>';
+                return;
+            }
+
+            // Create a clickable button for each ticket
+            tickets.forEach(t => {
+                const btn = document.createElement('button');
+                btn.className = 'ticket-item';
+                btn.innerHTML = `<strong>Ticket #${t.ticketNumber}</strong>: ${t.title}`;
+                // Pass id, number, and title into the join function
+                btn.onclick = () => joinTicket(t._id, t.ticketNumber, t.title);
+                listDiv.appendChild(btn);
+            });
+        }
+
+        async function createTicket() {
+            const title = document.getElementById('ticket-title').value;
+            if (!title) return;
+
+            await fetch('/tickets', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify({ title })
+            });
+            
+            document.getElementById('ticket-title').value = '';
+            loadTickets(); // Refresh the list so the new ticket appears immediately
+        }
+
+        // Now accepts arguments from the clicked button
+        async function joinTicket(id, number, title) {
+            currentTicketId = id;
+
+            // 1. Fetch History via REST
+            const res = await fetch(`/tickets/${currentTicketId}/history`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const history = await res.json();
+            
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML = ''; 
+            history.forEach(msg => appendMessage(msg));
+
+            // 2. Connect to Live Socket Room
+            socket.emit('joinTicket', currentTicketId);
+            
+            // 3. Update the UI Heading
+            document.getElementById('chat-title').innerText = `Chat Room: Ticket #${number} "${title}"`;
+            document.getElementById('chat-token').innerText = `Token ID: ${id}`;
+            
+            document.getElementById('ticket-section').classList.add('hidden');
+            document.getElementById('chat-section').classList.remove('hidden');
+        }
+
+        function backToTickets() {
+            document.getElementById('chat-section').classList.add('hidden');
+            document.getElementById('ticket-section').classList.remove('hidden');
+        }
+
+        // WebSockets (Live Chat)
+        function sendMessage() {
+            const content = document.getElementById('message-input').value;
+            if (!content) return;
+
+            socket.emit('sendMessage', {
+                ticketId: currentTicketId,
+                senderId: userId,
+                content: content
+            });
+            
+            document.getElementById('message-input').value = '';
+        }
+
+        socket.on('newMessage', (message) => {
+            appendMessage(message);
+        });
+
+        // Function message [UPDATE]
+        function appendMessage(message) {
+            const chatBox = document.getElementById('chat-box');
+            const div = document.createElement('div');
+            const isMe = message.sender._id === userId;
+            
+            // Timestamp format
+            const dateObj = new Date(message.createdAt);
+            const timeString = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const dateString = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' });
+            const timestamp = `${dateString}, ${timeString}`;
+            
+            div.className = `message ${isMe ? 'my-message' : ''}`;
+            
+            // Render the timestamp above the message content
+            const timeColor = isMe ? '#d1e7dd' : '#777';
+            
+            div.innerHTML = `
+                <div style="font-size: 0.75em; color: ${timeColor}; margin-bottom: 4px;">
+                    ${timestamp}
+                </div>
+                <div><strong>${message.sender.username}</strong>: ${message.content}</div>
+            `;
+            
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight; 
+        }
+    </script>
+</body>
+</html>
