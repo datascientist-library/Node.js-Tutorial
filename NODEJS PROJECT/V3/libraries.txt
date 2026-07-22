@@ -1,0 +1,2 @@
+npm init -y
+npm install express mongoose jsonwebtoken bcrypt socket.io dotenv
